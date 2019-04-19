@@ -33,23 +33,18 @@ import java.util.UUID
  * If a refresh event takes more time than the [delayTime], the refresh UI will be shown for
  * at least the [minShowTime], or the total amount of time for the refresh operation -
  * which ever is longer.
+ *
+ * The uniqueId field is not meant to actually be overridden, it is always meant to be random.
+ *
+ * A UUID is present so that a user can register multiple RefreshLatches on the same LifecycleOwner.
+ * LifecycleOwner counts its unique registrations via the equals/hashCode business, so we must
+ * generate a unique UUID here or else two RefreshLatches can have the same equals.
  */
 internal data class RefreshLatchImpl internal constructor(
-  // Lifecycle to bind to
   private val owner: LifecycleOwner,
-
-  // Number of milliseconds to wait before "posting" the show command
   private val delayTime: Long,
-
-  // Minimum number of milliseconds to show before "posting" the hide command
   private val minShowTime: Long,
-
-  // When a command is posted, fire this callback
   private val onRefresh: (refreshing: Boolean) -> Unit,
-
-  // Random unique UUID so that a user can register multiple RefreshLatches on the same LifecycleOwner
-  // LifecycleOwner counts its unique registrations via the equals/hashCode business, so we must
-  // generate a unique UUID here or else two RefreshLatches can have the same equals.
   private val uniqueId: String = UUID.randomUUID().toString()
 ) : RefreshLatch {
 
@@ -107,7 +102,7 @@ internal data class RefreshLatchImpl internal constructor(
 
   override fun enableDebugging(): RefreshLatchImpl {
     return this.apply { debug = true }
-      .also { debugLog { "Enabling Debugging" } }
+        .also { debugLog { "Enabling Debugging" } }
   }
 
   private inline fun debugLog(message: () -> String) {
@@ -133,7 +128,10 @@ internal data class RefreshLatchImpl internal constructor(
     }
   }
 
-  private inline fun queueCommand(delay: Long, crossinline command: () -> Unit) {
+  private inline fun queueCommand(
+    delay: Long,
+    crossinline command: () -> Unit
+  ) {
     handler.postDelayed({ command() }, delay)
   }
 

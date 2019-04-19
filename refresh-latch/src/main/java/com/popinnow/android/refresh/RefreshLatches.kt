@@ -100,9 +100,9 @@ fun newRefreshLatch(
   onRefresh: (refreshing: Boolean) -> Unit
 ): RefreshLatch {
   return RefreshLatchImpl(
-    owner,
-    delayTimeUnit.toMillis(delayTime),
-    minShowTimeUnit.toMillis(minShowTime),
-    onRefresh
+      owner,
+      delayTimeUnit.toMillis(delayTime),
+      minShowTimeUnit.toMillis(minShowTime),
+      onRefresh
   )
 }
