@@ -52,10 +52,7 @@ internal data class RefreshLatchImpl internal constructor(
   private var debug = false
 
   // Internal command state
-  private var _refreshing = false
-
-  // Time that the latch was last shown
-  private var timeLastShown = 0L
+  private var state = RefreshState(isRefreshing = false, timeLastShown = 0L)
 
   // Main thread handler for posting commands
   private val handler = Handler(Looper.getMainLooper())
@@ -73,26 +70,28 @@ internal data class RefreshLatchImpl internal constructor(
   }
 
   override var isRefreshing: Boolean
-    get() = _refreshing
+    get() = state.isRefreshing
     set(refresh) {
-      if (_refreshing == refresh) {
+      if (state.isRefreshing == refresh) {
         debugLog { "setRefreshing() called with same state, ignore." }
         return
       }
 
       clearCommands()
-      _refreshing = refresh
+      state = state.copy(isRefreshing = refresh)
 
+      val timeLastShown = state.timeLastShown
       when {
         refresh -> queueShow()
-        timeLastShown >= 0 -> queueHide()
+        timeLastShown >= 0 -> queueHide(timeLastShown)
         else -> hide()
       }
     }
 
   override fun force(isRefreshing: Boolean) {
     clearCommands()
-    _refreshing = isRefreshing
+    state = state.copy(isRefreshing = isRefreshing)
+
     if (isRefreshing) {
       show()
     } else {
@@ -117,7 +116,7 @@ internal data class RefreshLatchImpl internal constructor(
     queueCommand(delay) { show() }
   }
 
-  private fun queueHide() {
+  private fun queueHide(timeLastShown: Long) {
     val shownTime = SystemClock.uptimeMillis() - timeLastShown
     if (shownTime < minShowTime) {
       val delay = minShowTime - shownTime
@@ -142,13 +141,18 @@ internal data class RefreshLatchImpl internal constructor(
 
   private fun show() {
     debugLog { "show()" }
-    timeLastShown = SystemClock.uptimeMillis()
+    state = state.copy(timeLastShown = SystemClock.uptimeMillis())
     onRefresh(true)
   }
 
   private fun hide() {
     debugLog { "hide()" }
-    timeLastShown = 0L
+    state = state.copy(timeLastShown = 0L)
     onRefresh(false)
   }
+
+  private data class RefreshState(
+    val isRefreshing: Boolean,
+    val timeLastShown: Long
+  )
 }
